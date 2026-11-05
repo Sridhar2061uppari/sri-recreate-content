@@ -1,0 +1,42 @@
+# ── Sensitive / secrets ──────────────────────────────────────────────────────
+.env
+*.env
+cookies.txt
+*_cookies.txt
+*.cookies
+secrets.*
+
+# ── Generated work files (downloads, prompts, cache) ─────────────────────────
+work/
+scratch/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv*/
+venv/
+env/
+ENV/
+
+# ── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ── Testing ──────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
