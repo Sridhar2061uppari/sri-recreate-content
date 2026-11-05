@@ -1778,6 +1778,45 @@ def analyze_url(url: str, notify: Notify = _noop_notify) -> AnalysisResult:
     return result
 
 
+def analyze_local_video(path: Path, title: str = "Uploaded video", notify: Notify = _noop_notify) -> AnalysisResult:
+    """Validate and analyse a locally provided/uploaded video file, with caching."""
+    notify("Checking video...")
+    media = probe_video(path)
+    validate_media(media)
+
+    video_sha = _sha256(path)
+    if cached := _load_cached(video_sha):
+        notify("Using saved analysis for this video")
+        logger.info(f"[CACHE] hit by content sha={video_sha[:12]}")
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return cached
+
+    analysis = analyze_video(path, media, notify)
+
+    # Immediately delete the uploaded video — only prompt is kept.
+    try:
+        path.unlink(missing_ok=True)
+        logger.info(f"[CLEANUP] deleted uploaded video after analysis: {path.name}")
+    except OSError as exc:
+        logger.warning(f"[CLEANUP] could not delete uploaded video {path.name}: {exc}")
+
+    result = AnalysisResult(
+        video_sha=video_sha,
+        video_path=str(path),
+        source_url=f"upload://{title}",
+        title=title,
+        extractor="upload",
+        media=asdict(media),
+        analysis=analysis.model_dump(),
+    )
+    _cache_path(video_sha).parent.mkdir(parents=True, exist_ok=True)
+    _cache_path(video_sha).write_text(json.dumps(asdict(result), indent=2, ensure_ascii=False), encoding="utf-8")
+    return result
+
+
 USER_FACING_ERRORS = (URLVideoError, VideoValidationError, GeminiCallError, QuotaExhaustedError, RuntimeError, ValueError)
 
 
@@ -2039,12 +2078,45 @@ def run_app() -> None:
         _render_image_results(st, is_image_mode)
         return  # image mode done — skip video form below
 
-    # ── Video mode: URL input ────────────────────────────────────────────────
+    # ── Video mode: Upload file or URL input ──────────────────────────────────
+    uploaded_video = st.file_uploader(
+        "Upload video file (if private, login-blocked, or saved on your device)",
+        type=["mp4", "mov", "webm", "m4v"],
+        key="video_upload",
+        help="Upload up to 60s video. File is automatically deleted after Gemini analysis.",
+    )
+
+    if (
+        uploaded_video is not None
+        and st.session_state.get("_last_video_upload") != uploaded_video.name
+    ):
+        st.session_state["_last_video_upload"] = uploaded_video.name
+        uploads_dir = CONFIG.work_dir / "video_uploads"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        suffix = Path(uploaded_video.name).suffix.lower() or ".mp4"
+        temp_video = uploads_dir / f"upload_{uuid.uuid4().hex[:8]}{suffix}"
+        temp_video.write_bytes(uploaded_video.read())
+
+        with st.status("Analysing uploaded video...", expanded=True) as status:
+            try:
+                video_result = analyze_local_video(
+                    temp_video,
+                    title=uploaded_video.name,
+                    notify=lambda msg: status.update(label=msg),
+                )
+            except USER_FACING_ERRORS as exc:
+                status.update(label="Analysis failed", state="error")
+                st.error(str(exc))
+            else:
+                st.session_state.video_result = video_result
+                st.session_state.video_prompts = {}
+                label = "Analysis loaded from cache" if video_result.from_cache else "Analysis complete"
+                status.update(label=label, state="complete", expanded=False)
+
     with st.form("analyze_form"):
         url = st.text_input(
-            "Video URL",
+            "Or paste public video URL",
             placeholder="https://www.youtube.com/shorts/... or https://www.instagram.com/reel/...",
-            label_visibility="collapsed",
         )
 
         url_type = detect_url_type(url) if url.strip() else MediaType.VIDEO
@@ -2061,7 +2133,7 @@ def run_app() -> None:
             )
             effective_image = post_type == "🖼️ Image / Photo post"
 
-        btn_label = "🔍 Analyze image" if effective_image else "🔍 Analyze video"
+        btn_label = "🔍 Analyze image" if effective_image else "🔍 Analyze video URL"
         submitted = st.form_submit_button(btn_label, type="primary")
 
     # ── Analysis ─────────────────────────────────────────────────────────────
@@ -2079,9 +2151,13 @@ def run_app() -> None:
                 status.update(label="Analysis failed", state="error")
                 err_msg = str(exc)
                 st.error(err_msg)
+                st.info(
+                    "💡 **Can't download?** If the post is private or blocked by Instagram/TikTok, "
+                    "simply screen-record or save the video and upload it using the file uploader above!"
+                )
                 if "instagram" in err_msg.lower() or "cookies" in err_msg.lower():
                     st.info(
-                        "**How to fix Instagram Reel downloads — 3 steps:**\n\n"
+                        "**Or fix Instagram downloads with cookies:**\n\n"
                         "1. Install [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) in Chrome.\n"
                         "2. Go to [instagram.com](https://www.instagram.com) while **logged in** → click extension → **Export** → save as `cookies.txt`.\n"
                         f"3. Drop `cookies.txt` into: `{Path('.').resolve()}`\n\n"

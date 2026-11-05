@@ -1,1 +1,107 @@
-# sri-recreate-content
+# 🎬 Sri Recreate Content
+
+An AI-powered content analysis and recreation studio built with Streamlit and Google Gemini. Transform any public video (Reel, Short, TikTok) or image into production-ready prompts, reference sheets, Canva workflows, trending audio recommendations, and viral social metadata.
+
+---
+
+## ✨ Features
+
+### 🎬 Video & Reel Recreation
+- **URL or Direct File Upload**: Paste links from YouTube Shorts, Instagram Reels, TikTok, or directly upload an `.mp4`/`.mov`/`.webm` file (ideal for private posts or geo-restricted content).
+- **Native Video Understanding**: Uses Google Gemini to analyze visuals, speech, rhythm, lighting, camera angles, and soundtrack in a single multimodal call.
+- **Timed Scene-by-Scene Prompts**: Condenses videos into timed 8s or 10s recreation prompts with hook-first pacing.
+- **AI Reference Sheet**: Automatically suggests up to 3 image prompts (first frame, character, setting, object) for image-to-video generators (Veo, Runway, Luma, Kling, Sora).
+
+### 🖼️ Image Post Recreation
+- **Screenshot Upload or Direct Image URL**: Upload any screenshot from Instagram, Pinterest, or Twitter.
+- **3 Generator Formats**:
+  - 🍌 **Nano Banana / Nano Banana Pro**
+  - 🌀 **FLUX / Midjourney / Leonardo**
+  - 🖥️ **Stable Diffusion / ComfyUI** (with positive and negative prompts)
+- **Text Overlay Extraction**: Detects on-screen typography, fonts, positions, and outputs a ready-to-use Canva / CapCut layout recreation workflow.
+
+### 🎵 Audio & Social Metadata
+- **Audio Matching**: Suggests matching music tracks, BPM feel, genres, and exact Instagram search queries.
+- **Viral Social Pack**: Generates optimized YouTube titles, descriptions, and tags (with character caps), plus Instagram captions and hashtags.
+
+### 🔒 Privacy & Automated Cleanup
+- **Immediate Media Cleanup**: Videos and images are deleted as soon as Gemini finishes analyzing them. Only the generated prompt text is retained.
+- **24-Hour Cache Sweep**: Old prompt files and cached data older than 24 hours are automatically purged on startup.
+- **Privacy by Default**: `.env`, cookies, and temp working folders are fully excluded from version control.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- Python 3.10 or 3.11
+- [FFmpeg](https://ffmpeg.org/download.html) installed and accessible in your system PATH
+- A free Google Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+
+### 2. Clone the Repository
+```bash
+git clone https://github.com/Sridhar2061uppari/sri-recreate-content.git
+cd sri-recreate-content
+```
+
+### 3. Create and Activate Virtual Environment
+```bash
+# Windows
+python -m venv .venv
+.venv\Scripts\activate
+
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Configure Environment Variables
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+Open `.env` and add your Google Gemini API key:
+```ini
+GEMINI_API_KEY=your_actual_gemini_api_key_here
+```
+
+*(Optional)* If you want automated Instagram Reel downloads for accounts requiring a login session, export your browser cookies with the Chrome extension **Get cookies.txt LOCALLY** and save the file as `cookies.txt` in the project root.
+
+---
+
+## 💻 Running the App
+
+### Interactive Web Studio (Streamlit)
+```bash
+streamlit run recreate_video.py
+```
+Open [http://localhost:8501](http://localhost:8501) in your browser.
+
+### Command-Line Interface (CLI)
+```bash
+python recreate_video.py --url "https://www.youtube.com/shorts/YOUR_VIDEO_ID" --duration 8
+```
+
+---
+
+## 📁 Project Structure
+
+```
+├── recreate_video.py              # Main unified Streamlit app & video recreation pipeline
+├── recreate_image.py              # Image analysis, multi-model prompt generation & Canva workflows
+├── recreate_transition_video.py   # Transition video analysis pipeline
+├── tests/                         # Unit tests for prompt builders and metadata schemas
+├── requirements.txt               # Project dependencies
+├── .env.example                   # Environment configuration template
+└── .gitignore                     # Excludes secrets, cookies, and temporary media
+```
+
+---
+
+## 🛡️ License
+Distributed under the MIT License.
