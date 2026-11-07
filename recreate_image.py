@@ -387,7 +387,6 @@ def _plan_prompt_image(analysis: ImageAnalysis) -> str:
 
 def analyze_image(path: Path, notify: Notify = _noop_notify) -> ImageAnalysis:
     """Send the image to Gemini Vision and return a structured ImageAnalysis."""
-    import google.generativeai as genai_compat
     from google.genai import types as genai_types
 
     notify("Analysing image with Gemini Vision...")

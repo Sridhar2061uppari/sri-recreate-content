@@ -5,6 +5,7 @@ cookies.txt
 *_cookies.txt
 *.cookies
 secrets.*
+.streamlit/secrets.toml
 
 # ── Generated work files (downloads, prompts, cache) ─────────────────────────
 work/

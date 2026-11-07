@@ -52,6 +52,25 @@ from pydantic import BaseModel, Field
 APP_DIR = Path(__file__).resolve().parent
 load_dotenv(APP_DIR / ".env")
 
+# ── Streamlit Cloud secret injection ────────────────────────────────────────
+# On Streamlit Community Cloud there is no .env file; secrets are stored in
+# the app's "Secrets" settings and exposed via st.secrets. We inject them into
+# os.environ here so the rest of the code (os.getenv) works unchanged.
+def _inject_streamlit_secrets() -> None:
+    try:
+        import streamlit as _st
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        if get_script_run_ctx() is None:
+            return
+        secrets = _st.secrets
+        for key in ("GEMINI_API_KEY", "COOKIES_FILE", "DOWNLOAD_PROXY"):
+            if key in secrets and not os.environ.get(key):
+                os.environ[key] = str(secrets[key])
+    except Exception:
+        pass  # Not running in Streamlit, or secrets not configured — skip.
+
+_inject_streamlit_secrets()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
@@ -108,7 +127,10 @@ class Config:
     def problems(self) -> list[str]:
         issues = []
         if not self.api_key:
-            issues.append("GEMINI_API_KEY is not set in recreate_video/.env.")
+            issues.append(
+                "GEMINI_API_KEY is not set. "
+                "Add it to .env (local) or App Settings → Secrets (Streamlit Cloud)."
+            )
         if self.cookies_file and not Path(self.cookies_file).is_file():
             issues.append(f"COOKIES_FILE points to a missing file: {self.cookies_file}")
         return issues
